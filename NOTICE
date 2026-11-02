@@ -1,0 +1,2 @@
+The URI helpers and ssh-host resolution in mods/editor-sync/core.js are adapted from
+the open-vscode Herdr mod, Copyright (c) 2026 CacaoRick, under the MIT License.
