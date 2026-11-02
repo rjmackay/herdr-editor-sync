@@ -91,7 +91,7 @@ export default class EditorSync extends View {
       await this.loadConfig();
       if (this.dialog) return this.openOnce(cx);
       this.handledKey = this.focusKey();
-      this.lastRoot = await resolveFocus(focused()).then((t) => t.where, () => null);
+      this.lastRoot = await resolveFocus(this.terminalFocus()).then((t) => t.where, () => null);
       cx.notify();
     });
 
@@ -137,7 +137,7 @@ export default class EditorSync extends View {
   }
 
   focusKey() {
-    const t = focusTarget(focused(), spaces());
+    const t = focusTarget(this.terminalFocus(), spaces());
     return t ? `${t.machine ?? ""}|${t.folder}` : null;
   }
 
@@ -161,7 +161,7 @@ export default class EditorSync extends View {
     if (this.busy) return;
     this.busy = true;
     this.error = null;
-    const focus = focused();
+    const focus = this.terminalFocus();
     cx.spawn(async (cx) => {
       try {
         const target = await resolveFocus(focus);
@@ -182,7 +182,16 @@ export default class EditorSync extends View {
     });
   }
 
+  // The focused terminal, or the last one while a mod pane (this panel, say)
+  // has focus: clicking the panel shouldn't change what it opens.
+  terminalFocus() {
+    const f = focused();
+    if (f?.terminal) this.lastTerminal = f;
+    return f?.terminal ? f : (this.lastTerminal ?? f);
+  }
+
   tick(cx) {
+    this.terminalFocus();
     if (!this.config.follow || this.busy) return;
     const key = this.focusKey();
     if (key !== this.seenKey) {
@@ -213,6 +222,7 @@ export default class EditorSync extends View {
           .child(this.error ? `Could not open ${editor.name}` : this.status || "Opening…"))
         .child(div().text_size(12).text_color(t.muted).child(this.error ?? ""));
     }
+    this.terminalFocus();
     return h_flex().id("editor-sync").size_full().px(8).gap(6).items_center().bg(t.surface).text_size(12)
       .children(EDITORS.map((e) => this.button(t, `ed-${e.id}`, e.name, e.id === editor.id, (cx) => this.setConfig(cx, { editor: e.id }))))
       .child(this.button(t, "follow", this.config.follow ? "Follow: on" : "Follow: off", this.config.follow,
