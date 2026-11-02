@@ -52,7 +52,7 @@ export function focusTarget(focus, spaceList) {
   return { folder, machine: space?.machine ?? null, space: space?.name ?? null };
 }
 
-export const DEFAULT_CONFIG = { editor: "vscode", follow: false, returnFocus: false, hosts: {} };
+export const DEFAULT_CONFIG = { editor: "vscode", follow: false, returnFocus: true, hosts: {} };
 
 export function parseConfig(text) {
   if (!text) return { ...DEFAULT_CONFIG };

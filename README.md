@@ -43,7 +43,7 @@ Follow only runs while a panel exists. Put it in your layout to keep it running.
 |---|---|---|
 | `editor` | `"vscode"` | An editor `id` from `editors/` |
 | `follow` | `false` | Follow focus while a panel is open |
-| `returnFocus` | `false` | macOS: after Follow opens the editor, bring Herdr back to the front |
+| `returnFocus` | `true` | macOS: Follow opens the editor in the background; if it still takes the front (a new window), give focus back to Herdr |
 | `hosts` | `{}` | `{"<machine>": "<ssh host>"}` for machines without a plain ssh target (e.g. `--via`) |
 
 ## Adding an editor

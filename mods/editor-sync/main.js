@@ -12,7 +12,7 @@
 // "editor-sync.editor:<id>". They reach shown copies only.
 //
 // Settings: ~/.config/herdr-app/data/editor-sync/config.json
-//   { "editor": "vscode", "follow": false, "returnFocus": false, "hosts": {} }
+//   { "editor": "vscode", "follow": false, "returnFocus": true, "hosts": {} }
 
 import { View, div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
@@ -67,9 +67,15 @@ async function resolveFocus(focus) {
   return { root, machine: t.machine, where: t.machine ? `${t.machine}:${root}` : root };
 }
 
-async function openTarget(config, { root, machine }) {
+async function openTarget(config, { root, machine }, { background = false } = {}) {
   const host = await hostFor(machine, config);
-  await launch(editorById(config.editor), { folder: root, host, platform: platform() });
+  await launch(editorById(config.editor), { folder: root, host, platform: platform(), background });
+}
+
+// macOS: the name of the app in front, or "" when it can't tell.
+async function frontApp() {
+  const r = await exec("/bin/sh", ["-c", 'lsappinfo info -only name "$(lsappinfo front)"']).catch(() => null);
+  return r?.stdout.match(/="([^"]*)"/)?.[1] ?? "";
 }
 
 export default class EditorSync extends View {
@@ -80,6 +86,7 @@ export default class EditorSync extends View {
     this.status = "";
     this.error = null;
     this.busy = false;
+    this.ticks = 0;
     // Follow state: the focus key last seen, how many ticks it has held, and
     // the git root last opened (or seeded at start, so starting doesn't open).
     this.seenKey = null;
@@ -167,11 +174,20 @@ export default class EditorSync extends View {
         const target = await resolveFocus(focus);
         // Follow only moves the editor when the git root changes, not on every pane.
         if (follow && this.lastRoot === target.where) return;
-        await openTarget(this.config, target);
+        await openTarget(this.config, target, { background: follow });
         this.lastRoot = target.where;
         this.status = target.where;
+        // Follow opens in the background, but an editor making a new window can
+        // still take the front. Watch briefly and hand focus back to Herdr.
         if (follow && this.config.returnFocus && platform() === "macos") {
-          await exec("open", ["-a", "Herdr"]).catch(() => null);
+          for (let i = 0; i < 6; i++) {
+            await cx.sleep(250);
+            const app = await frontApp();
+            if (app && app !== "Herdr") {
+              await exec("open", ["-a", "Herdr"]).catch(() => null);
+              break;
+            }
+          }
         }
       } catch (e) {
         this.error = e?.message ?? String(e);
@@ -192,6 +208,8 @@ export default class EditorSync extends View {
 
   tick(cx) {
     this.terminalFocus();
+    // Pick up hand edits to config.json every few seconds.
+    if (++this.ticks % 10 === 0) cx.spawn(async () => { await this.loadConfig(); });
     if (!this.config.follow || this.busy) return;
     const key = this.focusKey();
     if (key !== this.seenKey) {
