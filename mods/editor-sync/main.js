@@ -16,7 +16,7 @@
 
 import { View, div } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { appHome, closeOverlay, exec, focused, hc, nextCommand, props, readTextFile, spaces, theme, window as appWindow, writeTextFile } from "herdr";
+import { appHome, closeOverlay, exec, focused, hc, nextCommand, notify, props, readTextFile, spaces, theme, window as appWindow, writeTextFile } from "herdr";
 import { focusTarget, parseConfig, resolveHost } from "./core.js";
 import { EDITORS, editorById } from "./editors/index.js";
 
@@ -191,6 +191,7 @@ export default class EditorSync extends View {
         }
       } catch (e) {
         this.error = e?.message ?? String(e);
+        if (props()?.bar) notify({ title: `Could not open ${editorById(this.config.editor).name}`, body: this.error, level: "error" });
       } finally {
         this.busy = false;
         cx.notify();
@@ -241,6 +242,7 @@ export default class EditorSync extends View {
         .child(div().text_size(12).text_color(t.muted).child(this.error ?? ""));
     }
     this.terminalFocus();
+    if (props()?.bar) return this.renderBar(t, editor);
     return h_flex().id("editor-sync").size_full().px(8).gap(6).items_center().bg(t.surface).text_size(12)
       .children(EDITORS.map((e) => this.button(t, `ed-${e.id}`, e.name, e.id === editor.id, (cx) => this.setConfig(cx, { editor: e.id }))))
       .child(this.button(t, "follow", this.config.follow ? "Follow: on" : "Follow: off", this.config.follow,
@@ -248,5 +250,23 @@ export default class EditorSync extends View {
       .child(this.button(t, "open", this.busy ? "Opening…" : "Open", false, (cx) => this.openNow(cx)))
       .child(div().flex_1().min_w(0).truncate().text_color(this.error ? t.blocked : t.dim)
         .child(this.error ?? this.status));
+  }
+
+  // The tab-bar version (layout block with props {bar: true}): styled like the
+  // tab bar's own Files / Changes buttons. Errors go to a toast.
+  renderBar(t, editor) {
+    const stop = (e) => e.stop_propagation?.();
+    const chip = (id, label, on, onClick, color) =>
+      h_flex().id(id).h(26).px(8).gap(5).flex_none().items_center().rounded(6).text_size(12)
+        .bg(on ? t.selected : t.chrome).text_color(color ?? (on ? t.foreground : t.muted))
+        .hover((s) => s.bg(t.hover)).on_mouse_down("left", stop)
+        .on_click((_e, cx) => { onClick(cx); cx.notify(); })
+        .child(label);
+    const next = EDITORS[(EDITORS.indexOf(editor) + 1) % EDITORS.length];
+    return h_flex().id("editor-sync").size_full().px(6).gap(3).items_center().justify_end()
+      .bg(t.chrome).border_b(1).border_color(t.border)
+      .child(chip("editor", editor.name, false, (cx) => this.setConfig(cx, { editor: next.id })))
+      .child(chip("follow", "Follow", this.config.follow, (cx) => this.setConfig(cx, { follow: !this.config.follow })))
+      .child(chip("open", this.busy ? "Opening…" : "Open", false, (cx) => this.openNow(cx), this.error ? t.blocked : null));
   }
 }
