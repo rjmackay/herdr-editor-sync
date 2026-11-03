@@ -22,11 +22,13 @@ cd ~/devel/herdr-editor-sync
 ./install.sh            # symlinks mods/editor-sync into ~/.config/herdr-app/mods
 ```
 
-Put the controls (editor, Follow, Open) on the right of the tab bar:
+Put the controls (editor, Follow, Open) on the right of the status bar:
 
 ```sh
-./add-to-tabbar.sh      # copies the main layout to main-editor and switches to it
+./add-to-statusbar.sh   # copies the main layout to main-editor and switches to it
 ```
+
+For the tab bar instead, use `"props": {"bar": true}` on the block.
 
 Herdr's own layouts are read-only, so this is a copy. Herdr updates to the `main`
 layout won't reach it; the mods it shows (the tab bar included) still update. Run it
@@ -46,7 +48,7 @@ Bind the quick-open key in `~/.config/herdr-app/keys.json`, under `"global"`:
 | Pick the editor, turn Follow on, open | The panel: open it as a mod pane, e.g. `herdr-app do pane.split '{"direction":"down","mod":"editor-sync"}'` |
 | Drive the panel from keys | Bind `editor-sync.open`, `editor-sync.follow` or `editor-sync.editor:zed`. These reach a shown panel only |
 
-Follow only runs while the mod is in the layout (the tab bar, or a panel). Run one copy:
+Follow only runs while the mod is in the layout (the status bar, or a panel). Run one copy:
 two copies both follow, so the editor opens twice.
 
 ## Known limits

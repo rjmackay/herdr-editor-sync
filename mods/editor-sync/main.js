@@ -252,19 +252,22 @@ export default class EditorSync extends View {
         .child(this.error ?? this.status));
   }
 
-  // The tab-bar version (layout block with props {bar: true}): styled like the
-  // tab bar's own Files / Changes buttons. Errors go to a toast.
+  // The bar version (layout block with props {bar: true}): chips for editor,
+  // Follow and Open. {bar: "status"} sizes it for the status bar, styled like
+  // workspace-status; anything else for the tab bar. Errors go to a toast.
   renderBar(t, editor) {
+    const status = props()?.bar === "status";
     const stop = (e) => e.stop_propagation?.();
     const chip = (id, label, on, onClick, color) =>
-      h_flex().id(id).h(26).px(8).gap(5).flex_none().items_center().rounded(6).text_size(12)
+      h_flex().id(id).h(status ? 20 : 26).px(status ? 7 : 8).gap(5).flex_none().items_center()
+        .rounded(status ? 4 : 6).text_size(status ? 11.8 : 12)
         .bg(on ? t.selected : t.chrome).text_color(color ?? (on ? t.foreground : t.muted))
         .hover((s) => s.bg(t.hover)).on_mouse_down("left", stop)
         .on_click((_e, cx) => { onClick(cx); cx.notify(); })
         .child(label);
     const next = EDITORS[(EDITORS.indexOf(editor) + 1) % EDITORS.length];
-    return h_flex().id("editor-sync").size_full().px(6).gap(3).items_center().justify_end()
-      .bg(t.chrome).border_b(1).border_color(t.border)
+    const bar = h_flex().id("editor-sync").size_full().px(6).gap(3).items_center().justify_end().bg(t.chrome);
+    return (status ? bar.border_t(1) : bar.border_b(1)).border_color(t.border)
       .child(chip("editor", editor.name, false, (cx) => this.setConfig(cx, { editor: next.id })))
       .child(chip("follow", "Follow", this.config.follow, (cx) => this.setConfig(cx, { follow: !this.config.follow })))
       .child(chip("open", this.busy ? "Opening…" : "Open", false, (cx) => this.openNow(cx), this.error ? t.blocked : null));
