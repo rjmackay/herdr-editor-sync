@@ -98,3 +98,7 @@ herdr-app check ~/.config/herdr-app/mods/editor-sync # loads and renders the mod
 ```
 
 Saving a file reloads the mod in place. `herdr-app status` shows load errors.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Some helpers are adapted from MIT-licensed code; see [NOTICE](NOTICE).
