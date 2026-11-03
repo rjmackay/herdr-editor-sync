@@ -11,10 +11,13 @@ your editor, and optionally keep the editor following Herdr's focus.
 - **Remote spaces:** VS Code opens them through Remote - SSH, and Zed as an ssh remote project.
 - **Editors:** VS Code and Zed. Adding another is one file (see below).
 
+Needs the Herdr desktop app (not the legacy TUI). Tested on macOS with Herdr 0.1.12,
+VS Code 1.144 and Zed 1.26.
+
 ## Install
 
 ```sh
-git clone <this repo> ~/devel/herdr-editor-sync
+git clone https://github.com/rjmackay/herdr-editor-sync.git ~/devel/herdr-editor-sync
 cd ~/devel/herdr-editor-sync
 ./install.sh            # symlinks mods/editor-sync into ~/.config/herdr-app/mods
 ```
@@ -43,7 +46,18 @@ Bind the quick-open key in `~/.config/herdr-app/keys.json`, under `"global"`:
 | Pick the editor, turn Follow on, open | The panel: open it as a mod pane, e.g. `herdr-app do pane.split '{"direction":"down","mod":"editor-sync"}'` |
 | Drive the panel from keys | Bind `editor-sync.open`, `editor-sync.follow` or `editor-sync.editor:zed`. These reach a shown panel only |
 
-Follow only runs while the mod is in the layout (the tab bar, or a panel).
+Follow only runs while the mod is in the layout (the tab bar, or a panel). Run one copy:
+two copies both follow, so the editor opens twice.
+
+## Known limits
+
+- **Follow flashes the editor.** VS Code and Zed both bring themselves to the front whenever
+  they're asked to open a folder. Neither has a flag to stop it: VS Code calls `window.focus()`
+  on every open, and Zed calls `cx.activate(true)` on every CLI and URL request. Follow opens
+  with `open -g` and then hands focus back to Herdr, so you see the editor for a moment.
+- **Follow opens the editor if it isn't running.**
+- **A remote folder in Zed** can't use `open -g`, so it always comes forward before focus is
+  handed back.
 
 ## Settings
 
@@ -64,8 +78,9 @@ Follow only runs while the mod is in the layout (the tab bar, or a panel).
    export default {
      id: "cursor",
      name: "Cursor",
-     // t = { folder, host, platform }. Return the commands to try, in order; the first to
-     // exit 0 wins. host is null for a local folder, else an ssh target. [] = can't open.
+     // t = { folder, host, platform, background }. Return the commands to try, in order; the first to
+     // exit 0 wins. host is null for a local folder, else an ssh target. background is true
+     // for Follow: prefer a way that doesn't activate the editor. [] = can't open.
      open({ folder, host }) {
        return host ? [] : [["cursor", [folder]]];
      },
